@@ -1,0 +1,122 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Utils = ReplicatedStorage.Modules.Utils
+
+local SoundManager = require(Utils.MusicManagerModule)
+
+local RemoteFunction = ReplicatedStorage.Signal.Remote.Function
+local Remote_LoadMusic = RemoteFunction.LoadMusic
+
+local Screen = script.Parent.Parent
+local MusicPlayerMain = Screen.MusicPlayer
+local Play = MusicPlayerMain.Play
+local Previous = MusicPlayerMain.Previous
+local Next = MusicPlayerMain.Next
+local MusicPlayingDisplay = MusicPlayerMain.MusicPlay
+
+local OnPause = true
+
+local CurrentMusic : Sound
+local CurrentPosition
+local CurrentConnection : RBXScriptConnection
+
+local AllMusic = workspace.Musics.BackgroundMusic.World1:GetChildren()
+
+local function PickRandomSong()
+	CurrentPosition = math.random(1,#AllMusic)
+	CurrentMusic = AllMusic[CurrentPosition]
+
+	return CurrentMusic, CurrentPosition
+end
+
+local function Connection()
+	if CurrentConnection then
+		CurrentConnection:Disconnect()
+	end
+	CurrentConnection = CurrentMusic.Ended:Connect(function()
+		if CurrentPosition >= #AllMusic then
+			CurrentPosition = 1
+		else
+			CurrentPosition += 1
+		end
+		CurrentMusic = AllMusic[CurrentPosition]
+		SoundManager:PlayMusic(CurrentMusic, AllMusic, CurrentPosition)
+		MusicPlayingDisplay.Text = CurrentMusic.Name
+	end)
+end
+
+local function NextOrPrevious(Next : boolean)
+	CurrentPosition = SoundManager:GetCurrentPosition()
+	
+	if Next then
+		if CurrentPosition >= #AllMusic then
+			CurrentPosition = 1
+		else
+			CurrentPosition += 1
+		end
+	elseif not Next  then
+		if CurrentPosition <= 1 then
+			CurrentPosition = #AllMusic
+		else
+			CurrentPosition -= 1
+		end
+	end
+	
+	CurrentMusic = AllMusic[CurrentPosition]
+	CurrentPosition = CurrentPosition
+	SoundManager:PlayMusic(CurrentMusic, AllMusic, CurrentPosition)
+	Connection()
+end
+
+local function PauseOrResume(Paused : boolean, Music)
+	if Paused then
+		SoundManager:PauseMusic()
+	elseif not Paused then
+		SoundManager:ResumeMusic()
+	end
+end
+
+local function OnPausedClicked()
+	PauseOrResume(OnPause, CurrentMusic)
+	OnPause = not OnPause
+end
+
+local function StartUp()
+	if not SoundManager:GetCurrentMusic() then
+		CurrentMusic, CurrentPosition = PickRandomSong()
+		SoundManager:PlayMusic(CurrentMusic, AllMusic, CurrentPosition, StartUp)
+		MusicPlayingDisplay.Text = CurrentMusic.Name
+		Connection()
+	else
+		CurrentMusic = SoundManager:GetCurrentMusic()
+		CurrentPosition = SoundManager:GetCurrentPosition()
+		MusicPlayingDisplay.Text = CurrentMusic.Name
+		SoundManager:ResumeMusic()
+		Connection()
+	end
+	
+	Play.MouseButton1Click:Connect(OnPausedClicked)
+	Play.TouchTap:Connect(OnPausedClicked)
+	
+	Previous.MouseButton1Click:Connect(function()
+		NextOrPrevious(false)
+		MusicPlayingDisplay.Text = CurrentMusic.Name
+	end)
+	Previous.TouchTap:Connect(function()
+		NextOrPrevious(false)
+		MusicPlayingDisplay.Text = CurrentMusic.Name
+	end)
+	
+	Next.MouseButton1Click:Connect(function()
+		NextOrPrevious(true)
+		MusicPlayingDisplay.Text = CurrentMusic.Name
+	end)
+	Next.TouchTap:Connect(function()
+		NextOrPrevious(true)
+		MusicPlayingDisplay.Text = CurrentMusic.Name
+	end)
+	
+end
+
+StartUp()
+
