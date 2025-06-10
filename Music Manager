@@ -1,0 +1,88 @@
+local MusicManager = {}
+
+local currentSoundObject : Sound = nil
+local currentEndedConnection = nil
+local currentPlaylist = nil
+local currentPlayNextCallback = nil
+local currentPosition = nil
+
+function MusicManager:PlayMusic(soundObject, playlist, Position, playNextCallback)
+	if not soundObject or not soundObject:IsA("Sound") then
+		warn("MusicManager:PlayMusic() called with invalid soundObject:", soundObject)
+		return
+	end
+
+	-- Stop and clean up any previously managed sound
+	if currentSoundObject then
+		currentSoundObject:Stop()
+	end
+	if currentEndedConnection then
+		currentEndedConnection:Disconnect()
+		currentEndedConnection = nil
+	end
+
+	currentSoundObject = soundObject
+	currentPlaylist = playlist -- Store for context if callback needs it
+	currentPlayNextCallback = playNextCallback
+	currentPosition = Position
+	
+	currentSoundObject.Volume = 0.25
+	currentSoundObject.TimePosition = 0 -- Always start from the beginning
+	currentSoundObject:Play()
+
+	if currentPlayNextCallback then
+		currentEndedConnection = currentSoundObject.Ended:Connect(function()
+			-- Check if the sound that ended is still the one we are managing
+			-- This prevents issues if PlayMusic is called rapidly for different sounds
+			if currentSoundObject == soundObject then
+				currentPlayNextCallback() -- Call the function provided by the LocalScript
+			end
+		end)
+	end
+	
+end
+
+function MusicManager:PauseMusic()
+	if currentSoundObject and currentSoundObject.Playing then
+		currentSoundObject:Pause()
+	end
+end
+
+function MusicManager:ResumeMusic()
+	if currentSoundObject and not currentSoundObject.Playing then
+		-- Resume will play if TimePosition > 0 and paused, or if TimePosition == 0 and stopped.
+		currentSoundObject:Resume()
+	end
+end
+
+function MusicManager:StopMusic()
+	if currentSoundObject  then
+		currentSoundObject:Stop()
+	end
+	if currentEndedConnection then
+		currentEndedConnection:Disconnect()
+		currentEndedConnection = nil
+	end
+	-- Optionally clear currentSoundObject if StopMusic means "no music is managed anymore"
+	-- currentSoundObject = nil
+	-- currentPlayNextCallback = nil
+	-- currentPlaylist = nil
+end
+
+function MusicManager:GetCurrentMusic()
+	return currentSoundObject
+end
+
+function MusicManager:GetCurrentPosition()
+	return currentPosition
+end
+
+function MusicManager:IsPlaying()
+	if currentSoundObject then
+		return currentSoundObject.Playing
+	end
+	return false
+end
+
+return MusicManager
+
