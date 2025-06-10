@@ -1,0 +1,46 @@
+local ReplicatedStorage =  game:GetService("ReplicatedStorage")
+
+local Events = ReplicatedStorage.Signal.Remote.Events
+
+local AttackEV = Events.Attack
+
+local Settings = {
+	CooldownTime = 0.1,
+	Damage = math.huge
+}
+
+
+local KillPart = {Tag = "KillPart"}
+KillPart.__index = KillPart
+
+function KillPart.new(Part : Instance) -- Has Instance : Instance
+	local self = setmetatable({
+		Part = Part
+	}, KillPart)
+
+	self:_init()
+
+	return self
+end
+
+function KillPart:_init()
+	local Part : Part = self.Part
+	local OnCooldown = false
+
+	Part.Touched:Connect(function(hit)
+		if OnCooldown then return end
+		OnCooldown = true
+		task.spawn(function()
+			local Humanoid : Humanoid = hit.Parent:FindFirstChild("Humanoid")
+			if Humanoid then
+				Humanoid:TakeDamage(Settings.Damage)
+			end
+		end)
+
+		task.delay(Settings.CooldownTime, function()
+			OnCooldown = false
+		end)
+	end)
+end
+
+return KillPart
