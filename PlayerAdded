@@ -1,0 +1,70 @@
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScript = game:GetService("ServerScriptService")
+
+local PlayerData = require(ServerScript.Utils.PlayerData)
+
+local RemoteFunction = ReplicatedStorage.Signal.Remote.Function
+local Remote_LoadMusic = RemoteFunction.LoadMusic
+
+local module = {}
+
+local function CreateFolder(Name : string, ParentTo : Instance)
+	local Folder = Instance.new("Folder", ParentTo)
+	Folder.Name = Name
+	return Folder
+end
+
+local function CreateInstance(Type : string, Name : string, ParentTo : Instance, Value : ValueBase)
+	local NewInstance = Instance.new(Type, ParentTo)
+	NewInstance.Name = Name
+	if Value then
+		NewInstance.Value = Value
+	end
+	return NewInstance
+end
+
+function module.Start()
+	
+	Players.PlayerAdded:Connect(function(player)
+		--- FOLDERS ---
+		local leaderstats : Folder = CreateFolder("leaderstats", player)
+		local Hiddenstats : Folder = CreateFolder("Hiddenstats", player)
+		local Property : Folder = CreateFolder("Property", player)
+		
+		--- INTVALUES ---
+		local Rebirth : IntValue = CreateInstance("IntValue", "Rebirth", leaderstats, 0)
+		local Coins : IntValue = CreateInstance("IntValue", "Coins", leaderstats, 0)
+		local Stage : IntValue = CreateInstance("IntValue", "Stage", leaderstats, 1)
+		
+		local CoinMultiplier = CreateInstance("IntValue", "CoinMultiplier", Hiddenstats, 1)
+		
+		--- PROPERTIES ---
+		local Trails = CreateFolder("Trails", Property)
+		local Titles = CreateFolder("Titles", Property)
+		
+		if PlayerData.IsProfileLoaded(player) then
+			local profile = PlayerData.GetData(player)
+			Rebirth.Value = profile.Rebirth
+			Coins.Value = profile.Coins
+			Stage.Value = profile.Stage
+			if Rebirth.Value <= 0 then
+				CoinMultiplier.Value = 1
+			else
+				CoinMultiplier.Value = Rebirth.Value * 2
+			end
+			
+			
+			PlayerData.AutoUpdateIntValue(player)
+			
+		end
+		
+		--Disable Forcefield on player upon respawn.
+		
+		
+	end)
+end
+
+
+
+return module

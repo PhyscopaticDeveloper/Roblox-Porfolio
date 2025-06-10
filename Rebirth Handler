@@ -1,0 +1,51 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Events = ReplicatedStorage.Signal.Remote.Events
+local Utils = ReplicatedStorage.Modules.Utils
+
+local Rebirth_EV = Events.Rebirth
+local ResetCheckpoint_EV = Events.ResetCheckpoint
+local RebirthSuccess_EV = Events.RebirthSuccess
+
+local StatChecker = require(Utils.StatsChecker)
+
+local Settings = {
+	MaxStage = 75
+}
+
+local module = {}
+
+function module.Start()
+	
+	Rebirth_EV.OnServerEvent:Connect(function(player)
+		local leaderstats = StatChecker:GetStat("leaderstats", player)
+		local Hiddenstats = StatChecker:GetStat("Hiddenstats", player)
+		local Coins = StatChecker:GetStat("Coins", leaderstats)
+		local Rebirth = StatChecker:GetStat("Rebirth", leaderstats)
+		local Stage = StatChecker:GetStat("Stage", leaderstats)
+		local CoinsMultiplier = StatChecker:GetStat("CoinMultiplier", Hiddenstats)
+		
+		local Character = player.Character
+		local Humanoid = Character:FindFirstChildWhichIsA("Humanoid")
+		
+		-- Resets Coins and Stage, and increase Rebirth and CoinsMultiplier by 1.
+		
+		if Stage.Value >= Settings.MaxStage then
+			Rebirth.Value += 1
+			CoinsMultiplier.Value = Rebirth.Value * 2
+			Stage.Value = 1
+			Coins.Value = math.floor(Coins.Value * 0.5)
+			Humanoid.Health = 0
+			
+			ResetCheckpoint_EV:FireClient(player)
+			RebirthSuccess_EV:FireClient(player)
+			
+			if CoinsMultiplier.Value <= 0 then
+				CoinsMultiplier.Value = 1
+			end
+		end
+	end)
+	
+end
+
+return module
