@@ -1,0 +1,16 @@
+local module = {}
+
+function module:GetStat(Name : string, From : Instance)
+	if not From then warn("Finding " .. Name .. " Is impossible without 'From' ") return end
+	if not Name then warn("Nothing to find from " .. From.Name) return end
+	
+	
+	local Stat = From:WaitForChild(Name)
+	if not Stat then warn(Name .. " Wasn't found on " .. From.Name) return end
+	
+	if Stat then
+		return Stat
+	end
+end
+
+return module
