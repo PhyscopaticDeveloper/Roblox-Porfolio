@@ -1,0 +1,80 @@
+local Analytics = game:GetService("AnalyticsService")
+
+local Transaction = {}
+
+function Transaction:LogEconomy(player : Player,
+	FlowType : Enum.AnalyticsEconomyFlowType,
+	Currency : string,
+	Addition : number, 
+	NewAmount : number, 
+	TransactionType : Enum.AnalyticsEconomyTransactionType,
+	ItemSku : string?,
+	Customfield : {string}
+)
+	
+	local field = {
+		["Item Name"] = Customfield[1] or "N/A",
+		["Item Type"] = Customfield[2] or "N/A",
+		["Currency Type"] = Customfield[3] or "N/A",
+		["Source"] = Customfield[4] or "N/A",
+		["Destination"] = Customfield[5] or "N/A",
+	}
+	
+	Analytics:LogEconomyEvent(
+		player,
+		FlowType,
+		Currency,
+		Addition,
+		NewAmount,
+		TransactionType.Name,
+		ItemSku,
+		field
+		)
+end
+
+function Transaction:BuyItem(Wallet : IntValue,
+	Price : number,
+	Item : Instance, 
+	PutInto: Instance, 
+	From : Player,
+	Currency : string,
+	ItemType : string)
+	
+	local Success = Transaction:SpendMoney(Wallet, Price)
+	
+	if Success then
+		Item.Parent = PutInto
+		Transaction:LogEconomy(
+			From,
+			Enum.AnalyticsEconomyFlowType.Sink,
+			Currency,
+			Price,
+			Wallet.Value,
+			Enum.AnalyticsEconomyTransactionType.Shop,
+			"Buy Item",
+			{
+				[1] = Item.Name,
+				[2] = ItemType,
+				[3] = Currency,
+				[4] = "Shop",
+				[5] = "Player"
+			}
+		)
+		return true
+	else
+		return false
+	end
+	
+	
+end
+
+function Transaction:SpendMoney(Wallet : IntValue, Amount : number)
+	if Wallet.Value >= Amount then
+		Wallet.Value -= Amount
+		return true
+	else
+		return false
+	end
+end
+
+return Transaction
